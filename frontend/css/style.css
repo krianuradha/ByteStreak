@@ -1,0 +1,251 @@
+/* GENERAL */
+
+body{
+font-family: Arial, sans-serif;
+margin:0;
+background:#f4f6f9;
+color:#333;
+}
+
+/* NAVBAR */
+
+.navbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#111;
+color:white;
+padding:15px 40px;
+}
+
+.logo{
+font-size:22px;
+font-weight:bold;
+}
+
+.navbar a{
+color:white;
+text-decoration:none;
+margin-left:20px;
+font-size:16px;
+transition:0.2s;
+}
+
+.navbar a:hover{
+color:#007bff;
+}
+
+/* HERO SECTION */
+
+.hero{
+text-align:center;
+padding:80px 20px;
+}
+
+.hero h2{
+font-size:40px;
+margin-bottom:10px;
+}
+
+.hero p{
+font-size:18px;
+color:#555;
+}
+
+/* BUTTON */
+
+.btn{
+background:#007bff;
+color:white;
+padding:12px 25px;
+border-radius:6px;
+text-decoration:none;
+display:inline-block;
+margin-top:20px;
+font-weight:bold;
+transition:0.2s;
+}
+
+.btn:hover{
+background:#0056d2;
+}
+
+/* FEATURES */
+
+.features{
+display:flex;
+justify-content:center;
+gap:30px;
+padding:40px;
+flex-wrap:wrap;
+}
+
+.card{
+background:white;
+padding:25px;
+width:220px;
+border-radius:10px;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+text-align:center;
+transition:0.2s;
+}
+
+.card:hover{
+transform:scale(1.05);
+}
+
+/* TOPICS PREVIEW (HOME PAGE) */
+
+.topics{
+text-align:center;
+padding:40px;
+}
+
+.topic-grid{
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+margin-top:20px;
+}
+
+.topic-card{
+background:white;
+padding:20px 30px;
+border-radius:10px;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+text-decoration:none;
+color:black;
+text-align:center;
+transition:0.2s;
+}
+
+.topic-card:hover{
+transform:translateY(-5px);
+}
+
+/* TOPICS PAGE GRID */
+
+.topics-page{
+text-align:center;
+padding:40px;
+}
+
+.topics-grid{
+display:grid;
+grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+gap:25px;
+margin-top:30px;
+max-width:900px;
+margin-left:auto;
+margin-right:auto;
+}
+
+/* FOOTER */
+
+footer{
+background:#111;
+color:white;
+text-align:center;
+padding:20px;
+margin-top:40px;
+}
+/* PROBLEMS PAGE */
+
+.problems-page{
+padding:40px;
+text-align:center;
+}
+
+.problems-table{
+margin:auto;
+width:70%;
+border-collapse:collapse;
+background:white;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+}
+
+.problems-table th,
+.problems-table td{
+padding:15px;
+border-bottom:1px solid #ddd;
+}
+
+.problems-table th{
+background:#f2f2f2;
+}
+
+.problems-table tr:hover{
+background:#f9f9f9;
+}
+
+.problems-table a{
+text-decoration:none;
+color:#007bff;
+font-weight:bold;
+}
+
+.easy{
+color:green;
+font-weight:bold;
+}
+/* PROBLEM PAGE */
+
+.problem-page{
+padding:40px;
+max-width:900px;
+margin:auto;
+}
+
+.problem-info{
+margin-bottom:20px;
+font-weight:bold;
+}
+
+.problem-description{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+margin-bottom:30px;
+}
+
+pre{
+background:#f4f4f4;
+padding:15px;
+border-radius:5px;
+}
+
+.code-section{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+}
+
+.code-editor{
+width:100%;
+height:200px;
+font-family:monospace;
+padding:10px;
+margin-top:10px;
+border-radius:5px;
+border:1px solid #ccc;
+}
+
+.run-btn{
+margin-top:15px;
+padding:10px 20px;
+background:#007bff;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.output{
+margin-top:20px;
+background:#f9f9f9;
+padding:15px;
+border-radius:5px;
+}

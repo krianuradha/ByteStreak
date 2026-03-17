@@ -1,31 +1,34 @@
+require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log(req.method, req.url, req.body);
+  next();
+});
 
-// MongoDB Connection
+const MONGO_URI = "mongodb+srv://krianuradha:anu12345@cluster0.rbfqvce.mongodb.net/test?retryWrites=true&w=majority";
+const JWT_SECRET = "bytestreak_super_secret_key_2026";
 
-const uri = "mongodb+srv://krianuradha:anu12345@cluster0.rbfqvce.mongodb.net/test?retryWrites=true&w=majority";
-
-mongoose.connect(uri)   // no options needed
+mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ Connection Error:", err));
 
-// Routes
 const problemRoutes = require("./routes/problems");
-app.use("/problems", problemRoutes);
+const authRoutes = require("./routes/auth");
 
-// Test route
+app.use("/problems", problemRoutes);
+app.use("/auth", authRoutes);
+
 app.get("/", (req, res) => {
   res.send("CodeDaily backend running 🚀");
 });
 
-// Start server
 app.listen(5000, () => {
   console.log("Server running on port 5000");
 });

@@ -12,8 +12,9 @@ app.use((req, res, next) => {
   next();
 });
 
-const MONGO_URI = "mongodb+srv://krianuradha:anu12345@cluster0.rbfqvce.mongodb.net/test?retryWrites=true&w=majority";
-const JWT_SECRET = "bytestreak_super_secret_key_2026";
+const MONGO_URI = process.env.MONGO_URI ;
+const JWT_SECRET = process.env.JWT_SECRET;
+const port=process.env.PORT;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -29,6 +30,6 @@ app.get("/", (req, res) => {
   res.send("CodeDaily backend running 🚀");
 });
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+app.listen(port, () => {
+  console.log(`Server running on port http://localhost:${port}`);
 });

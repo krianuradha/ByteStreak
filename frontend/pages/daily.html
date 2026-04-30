@@ -1,47 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-<meta charset="UTF-8">
-<title>Daily Problem - ByteStreak</title>
-<link rel="stylesheet" href="../css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Challenge - ByteStreak</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .daily-page {
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .daily-card {
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+    .daily-card h3 {
+      color: var(--primary);
+      margin-bottom: 15px;
+    }
+    .daily-card .difficulty {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    .daily-card .date {
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    .daily-card p {
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .solve-btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 30px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background 0.3s;
+    }
+    .solve-btn:hover {
+      background: var(--primary-hover);
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 40px;
+    }
+    .error {
+      color: #ff4444;
+    }
+  </style>
 </head>
-
 <body>
+  <nav class="navbar">
+    <div class="nav-brand">ByteStreak</div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="problems.html">Problems</a>
+      <a href="daily.html" class="active">Daily Challenge</a>
+      <a href="login.html">Login</a>
+    </div>
+  </nav>
 
-<header class="navbar">
+  <section class="daily-page">
+    <h2>Problem of the Day</h2>
+    <div id="daily-problem">
+      <div class="loading">Loading today's challenge...</div>
+    </div>
+  </section>
 
-<h1 class="logo">ByteStreak</h1>
+  <script src="../js/script.js"></script>
+  <script>
+    const API_URL = "http://localhost:5000";
 
-<nav>
-<a href="index.html">Home</a>
-<a href="topics.html">Topics</a>
-<a href="problems.html">Problems</a>
-<a href="daily.html">Daily Problem</a>
-</nav>
+    async function loadDailyProblem() {
+      const container = document.getElementById("daily-problem");
+      
+      try {
+        const response = await fetch(`${API_URL}/problems/daily-problem`);
+        
+        if (!response.ok) {
+          throw new Error("Failed to load daily problem");
+        }
+        
+        const problem = await response.json();
+        
+        const difficultyClass = problem.difficulty?.toLowerCase() || "easy";
+        
+        container.innerHTML = `
+          <div class="daily-card">
+            <h3>${problem.title}</h3>
+            <span class="difficulty ${difficultyClass}">${problem.difficulty || "Easy"}</span>
+            <p class="date">${problem.date || new Date().toISOString().split("T")[0]}</p>
+            <p>${problem.description || "No description available."}</p>
+            <a href="problem.html?id=${problem._id}" class="solve-btn">Solve Now</a>
+          </div>
+        `;
+      } catch (error) {
+        container.innerHTML = `<div class="error">Error: ${error.message}. Make sure the backend is running!</div>`;
+      }
+    }
 
-</header>
-
-
-<section class="daily-page">
-
-<h2>Problem of the Day</h2>
-
-<div id="daily-problem" class="card">
-
-<p>Loading problem...</p>
-
-</div>
-
-</section>
-
-<footer>
-
-<p>© 2026 ByteStreak</p>
-
-</footer>
-
-<script src="../js/script.js"></script>
-
+    // Load daily problem on page load
+    loadDailyProblem();
+  </script>
 </body>
 </html>

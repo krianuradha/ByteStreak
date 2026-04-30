@@ -1,82 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-<meta charset="UTF-8">
-<title>Problem - ByteStreak</title>
-<link rel="stylesheet" href="../css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problem - ByteStreak</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .problem-page {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .problem-info {
+      margin: 10px 0 20px;
+      color: var(--text);
+    }
+    .problem-description {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .problem-description pre {
+      background: #1e1e1e;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    .code-section {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .code-editor {
+      width: 100%;
+      min-height: 300px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .code-editor:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .language-select {
+      margin-bottom: 15px;
+    }
+    .language-select select {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text);
+    }
+    .run-btn {
+      margin-top: 15px;
+      padding: 12px 30px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .run-btn:hover {
+      background: var(--primary-hover);
+    }
+    .run-btn:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+    }
+    .output {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      border-radius: 6px;
+      min-height: 100px;
+    }
+    .output h4 {
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+    .output pre {
+      white-space: pre-wrap;
+      color: #d4d4d4;
+    }
+    .result-success {
+      color: #00c851;
+    }
+    .result-error {
+      color: #ff4444;
+    }
+    .login-prompt {
+      text-align: center;
+      padding: 40px;
+      background: var(--card-bg);
+      border-radius: 8px;
+    }
+    .login-prompt a {
+      color: var(--primary);
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 40px;
+    }
+    .error {
+      color: #ff4444;
+    }
+  </style>
 </head>
-
 <body>
+  <nav class="navbar">
+    <div class="nav-brand">ByteStreak</div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="problems.html">Problems</a>
+      <a href="daily.html">Daily Challenge</a>
+      <a href="login.html">Login</a>
+    </div>
+  </nav>
 
-<header class="navbar">
+  <section class="problem-page" id="problemContent">
+    <div class="loading">Loading problem...</div>
+  </section>
 
-<h1 class="logo">ByteStreak</h1>
+  <script src="../js/script.js"></script>
+  <script>
+    const API_URL = "http://localhost:5000";
+    
+    // Get problem ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemId = urlParams.get("id");
 
-<nav>
-<a href="index.html">Home</a>
-<a href="topics.html">Topics</a>
-<a href="problems.html">Problems</a>
-<a href="daily.html">Daily Problem</a>
-</nav>
+    async function loadProblem() {
+      const container = document.getElementById("problemContent");
+      
+      if (!problemId) {
+        container.innerHTML = '<div class="error">No problem ID provided</div>';
+        return;
+      }
 
-</header>
+      // Check if logged in
+      const token = localStorage.getItem("token");
+      if (!token) {
+        container.innerHTML = `
+          <div class="login-prompt">
+            <h2>Login Required</h2>
+            <p>Please <a href="login.html">login</a> to solve problems and submit solutions.</p>
+          </div>
+        `;
+        return;
+      }
 
+      try {
+        const response = await fetch(`${API_URL}/problems/${problemId}`);
+        
+        if (!response.ok) {
+          throw new Error("Problem not found");
+        }
+        
+        const problem = await response.json();
+        
+        container.innerHTML = `
+          <h2>${problem.title}</h2>
+          <p class="problem-info">
+            Difficulty: <span class="${problem.difficulty?.toLowerCase()}">${problem.difficulty || "Easy"}</span> | 
+            Topic: ${problem.tags?.join(", ") || "General"}
+          </p>
 
-<section class="problem-page">
+          <div class="problem-description">
+            <h3>Description</h3>
+            <p>${problem.description || "No description available."}</p>
+            
+            ${problem.examples ? `
+            <h3>Example</h3>
+            <pre>${problem.examples}</pre>
+            ` : ""}
+            
+            ${problem.constraints ? `
+            <h3>Constraints</h3>
+            <pre>${problem.constraints}</pre>
+            ` : ""}
+          </div>
 
-<h2>Two Sum</h2>
+          <div class="code-section">
+            <h3>Code Editor</h3>
+            <div class="language-select">
+              <select id="language">
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+                <option value="c">C</option>
+              </select>
+            </div>
+            <textarea class="code-editor" id="codeEditor" placeholder="Write your code here..."></textarea>
+            <button class="run-btn" id="submitBtn" onclick="submitSolution()">Submit Solution</button>
+            
+            <div class="output">
+              <h4>Output</h4>
+              <pre id="output">Your submission result will appear here</pre>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        container.innerHTML = `<div class="error">Error loading problem: ${error.message}</div>`;
+      }
+    }
 
-<p class="problem-info">
-Difficulty: <span class="easy">Easy</span> | Topic: Array
-</p>
+    async function submitSolution() {
+      const code = document.getElementById("codeEditor").value;
+      const language = document.getElementById("language").value;
+      const submitBtn = document.getElementById("submitBtn");
+      const output = document.getElementById("output");
 
-<div class="problem-description">
+      if (!code.trim()) {
+        output.innerHTML = '<span class="result-error">Please write some code before submitting.</span>';
+        return;
+      }
 
-<h3>Description</h3>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        output.innerHTML = '<span class="result-error">Please login to submit solutions.</span>';
+        return;
+      }
 
-<p>
-Given an array of integers nums and an integer target,
-return indices of the two numbers such that they add up to target.
-</p>
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+      output.textContent = "Submitting your solution...";
 
-<h3>Example</h3>
+      try {
+        const response = await fetch(`${API_URL}/submissions/submit`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            problemId,
+            code,
+            language
+          })
+        });
 
-<pre>
-Input: nums = [2,7,11,15], target = 9
-Output: [0,1]
+        const data = await response.json();
 
-Explanation:
-nums[0] + nums[1] = 2 + 7 = 9
-</pre>
+        if (!response.ok) {
+          throw new Error(data.message || "Submission failed");
+        }
 
-</div>
+        const result = data.data;
+        output.innerHTML = `
+          <div class="result-success">
+            <strong>✓ Accepted!</strong>
+            
+            Test Cases Passed: ${result.testCasesPassed}/${result.totalTestCases}
+            Status: ${result.status}
+          </div>
+        `;
+      } catch (error) {
+        output.innerHTML = `<span class="result-error">Error: ${error.message}</span>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Solution";
+      }
+    }
 
-
-<div class="code-section">
-
-<h3>Code Editor</h3>
-
-<textarea class="code-editor" placeholder="Write your C++ code here..."></textarea>
-
-<button class="run-btn">Run Code</button>
-
-<div class="output">
-
-<h4>Output</h4>
-
-<p>Program output will appear here</p>
-
-</div>
-
-</div>
-
-</section>
-
-
-<footer>
-<p>© 2026 ByteStreak</p>
-</footer>
-
+    // Load problem on page load
+    loadProblem();
+  </script>
 </body>
 </html>

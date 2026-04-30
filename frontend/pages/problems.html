@@ -1,75 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-<meta charset="UTF-8">
-<title>Problems - ByteStreak</title>
-<link rel="stylesheet" href="../css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problems - ByteStreak</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .problems-page {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .filters {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filters select, .filters input {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text);
+    }
+    .problems-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .problems-table th, .problems-table td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .problems-table th {
+      background: var(--card-bg);
+      font-weight: 600;
+    }
+    .problems-table tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .problems-table a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .problems-table a:hover {
+      text-decoration: underline;
+    }
+    .difficulty {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .easy { background: #d4edda; color: #155724; }
+    .medium { background: #fff3cd; color: #856404; }
+    .hard { background: #f8d7da; color: #721c24; }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text);
+    }
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #ff4444;
+    }
+  </style>
 </head>
-
 <body>
+  <nav class="navbar">
+    <div class="nav-brand">ByteStreak</div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="problems.html" class="active">Problems</a>
+      <a href="daily.html">Daily Challenge</a>
+      <a href="login.html">Login</a>
+    </div>
+  </nav>
 
-<header class="navbar">
+  <section class="problems-page">
+    <h2>Practice Problems</h2>
+    
+    <div class="filters">
+      <select id="difficultyFilter">
+        <option value="">All Difficulties</option>
+        <option value="Easy">Easy</option>
+        <option value="Medium">Medium</option>
+        <option value="Hard">Hard</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="Search problems...">
+      <button class="btn" onclick="applyFilters()">Filter</button>
+    </div>
 
-<h1 class="logo">ByteStreak</h1>
+    <div id="problemsContainer">
+      <div class="loading">Loading problems...</div>
+    </div>
+  </section>
 
-<nav>
-<a href="index.html">Home</a>
-<a href="topics.html">Topics</a>
-<a href="problems.html">Problems</a>
-<a href="daily.html">Daily Problem</a>
-</nav>
+  <script src="../js/script.js"></script>
+  <script>
+    const API_URL = "http://localhost:5000";
 
-</header>
+    async function loadProblems() {
+      const container = document.getElementById("problemsContainer");
+      
+      try {
+        const response = await fetch(`${API_URL}/problems`);
+        const problems = await response.json();
 
+        if (!problems || problems.length === 0) {
+          container.innerHTML = '<div class="error">No problems found. Add some problems to get started!</div>';
+          return;
+        }
 
-<section class="problems-page">
+        let html = `
+          <table class="problems-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Difficulty</th>
+                <th>Topic</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
 
-<h2>Practice Problems</h2>
+        problems.forEach((problem, index) => {
+          const difficultyClass = problem.difficulty?.toLowerCase() || "easy";
+          html += `
+            <tr>
+              <td>${index + 1}</td>
+              <td><a href="problem.html?id=${problem._id}">${problem.title}</a></td>
+              <td><span class="difficulty ${difficultyClass}">${problem.difficulty || "Easy"}</span></td>
+              <td>${problem.tags?.join(", ") || "General"}</td>
+            </tr>
+          `;
+        });
 
-<table class="problems-table">
+        html += "</tbody></table>";
+        container.innerHTML = html;
+      } catch (error) {
+        console.error("Error loading problems:", error);
+        container.innerHTML = '<div class="error">Failed to load problems. Make sure the backend is running!</div>';
+      }
+    }
 
-<thead>
-<tr>
-<th>#</th>
-<th>Title</th>
-<th>Difficulty</th>
-<th>Topic</th>
-</tr>
-</thead>
+    function applyFilters() {
+      const difficulty = document.getElementById("difficultyFilter").value;
+      const search = document.getElementById("searchInput").value;
+      loadProblemsFiltered(difficulty, search);
+    }
 
-<tbody>
+    async function loadProblemsFiltered(difficulty, search) {
+      const container = document.getElementById("problemsContainer");
+      let url = `${API_URL}/problems?`;
+      
+      if (difficulty) url += `difficulty=${difficulty}&`;
+      if (search) url += `search=${encodeURIComponent(search)}`;
+      
+      try {
+        const response = await fetch(url);
+        const problems = await response.json();
 
-<tr>
-<td>1</td>
-<td><a href="problem.html?id=1">Two Sum</a></td>
-<td class="easy">Easy</td>
-<td>Array</td>
-</tr>
+        if (!problems || problems.length === 0) {
+          container.innerHTML = '<div class="error">No problems match your filters.</div>';
+          return;
+        }
 
-<tr>
-<td>2</td>
-<td><a href="problem.html?id=2">Maximum Subarray</a></td>
-<td class="easy">Easy</td>
-<td>Array</td>
-</tr>
+        let html = `
+          <table class="problems-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Difficulty</th>
+                <th>Topic</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
 
-<tr>
-<td>3</td>
-<td><a href="problem.html?id=3">Valid Parentheses</a></td>
-<td class="easy">Easy</td>
-<td>Stack</td>
-</tr>
+        problems.forEach((problem, index) => {
+          const difficultyClass = problem.difficulty?.toLowerCase() || "easy";
+          html += `
+            <tr>
+              <td>${index + 1}</td>
+              <td><a href="problem.html?id=${problem._id}">${problem.title}</a></td>
+              <td><span class="difficulty ${difficultyClass}">${problem.difficulty || "Easy"}</span></td>
+              <td>${problem.tags?.join(", ") || "General"}</td>
+            </tr>
+          `;
+        });
 
-</tbody>
+        html += "</tbody></table>";
+        container.innerHTML = html;
+      } catch (error) {
+        container.innerHTML = '<div class="error">Error loading problems.</div>';
+      }
+    }
 
-</table>
-
-</section>
-
-<footer>
-<p>© 2026 ByteStreak</p>
-</footer>
-
+    // Load problems on page load
+    loadProblems();
+  </script>
 </body>
 </html>

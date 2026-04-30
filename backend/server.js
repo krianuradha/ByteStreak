@@ -7,29 +7,31 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use((req, res, next) => {
-  console.log(req.method, req.url, req.body);
-  next();
-});
 
-const MONGO_URI = process.env.MONGO_URI ;
-const JWT_SECRET = process.env.JWT_SECRET;
-const port=process.env.PORT;
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/bytestreak";
+const PORT = process.env.PORT || 5000;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ Connection Error:", err));
 
-const problemRoutes = require("./routes/problems");
 const authRoutes = require("./routes/auth");
+const problemRoutes = require("./routes/problems");
+const submissionRoutes = require("./routes/submissions");
 
-app.use("/problems", problemRoutes);
 app.use("/auth", authRoutes);
+app.use("/problems", problemRoutes);
+app.use("/submissions", submissionRoutes);
 
 app.get("/", (req, res) => {
-  res.send("CodeDaily backend running 🚀");
+  res.send("ByteStreak backend running 🚀");
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port http://localhost:${port}`);
+app.use((err, req, res, next) => {
+  console.log("ERROR:", err.message);
+  res.status(500).json({ error: err.message });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port http://localhost:${PORT}`);
 });

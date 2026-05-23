@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard - ByteStreak</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="problems.html">Problems</a>
+      <a href="topics.html">Topics</a>
+      <a href="daily.html">Daily</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="profile.html" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="login.html" id="nav-login">Login</a>
+      <a href="signup.html" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <h1>Leaderboard</h1>
+    <p>Top coders on ByteStreak</p>
+    <div class="table-wrap section">
+      <table class="leaderboard">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Username</th>
+            <th>Score</th>
+            <th>Streak</th>
+            <th>Problems Solved</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-rows">
+          <tr><td colspan="5" class="loading"><span class="spinner"></span>Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/script.js"></script>
+  <script>
+    async function loadLeaderboard() {
+      const rows = document.getElementById("leaderboard-rows");
+      const currentUser = ByteStreak.getUser();
+      try {
+        const users = await ByteStreak.apiJson("/users/leaderboard");
+        rows.innerHTML = users.map((user, index) => `
+          <tr class="rank-${user.rank || index + 1} ${currentUser?.username === user.username ? "current-user" : ""}" style="animation-delay:${index * 45}ms">
+            <td>${user.rank || index + 1}</td>
+            <td>${ByteStreak.escapeHtml(user.username)}</td>
+            <td>${user.score || 0}</td>
+            <td>${user.streak || 0}</td>
+            <td>${user.problemsSolved ?? 0}</td>
+          </tr>
+        `).join("");
+      } catch (error) {
+        ByteStreak.showToast(error.message, "error");
+        rows.innerHTML = `<tr><td colspan="5">${ByteStreak.escapeHtml(error.message)}</td></tr>`;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadLeaderboard);
+  </script>
+</body>
+</html>

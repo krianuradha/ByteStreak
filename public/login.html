@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - ByteStreak</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="problems.html">Problems</a>
+      <a href="topics.html">Topics</a>
+      <a href="daily.html">Daily</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="profile.html" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="login.html" id="nav-login">Login</a>
+      <a href="signup.html" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="auth-page">
+    <section class="auth-box">
+      <h1>Login</h1>
+      <div class="error-message" id="error-message"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" required autocomplete="current-password">
+        </div>
+        <button class="primary full" id="login-button" type="submit">Login</button>
+      </form>
+      <p class="auth-link">Don't have an account? <a href="signup.html">Sign up</a></p>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/script.js"></script>
+  <script>
+    function showError(message) {
+      const error = document.getElementById("error-message");
+      error.textContent = message;
+      error.style.display = "block";
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.getElementById("login-button");
+      const error = document.getElementById("error-message");
+      error.style.display = "none";
+      ByteStreak.setButtonLoading(button, "Logging in...");
+
+      try {
+        const response = await fetch(`${CONFIG.BASE_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Login failed");
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        window.location.href = "problems.html";
+      } catch (err) {
+        showError(err.message);
+        ByteStreak.showToast(err.message, "error");
+      } finally {
+        ByteStreak.resetButton(button);
+      }
+    });
+  </script>
+</body>
+</html>

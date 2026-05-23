@@ -3,115 +3,184 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Challenge - ByteStreak</title>
+  <title>Daily - ByteStreak</title>
   <link rel="stylesheet" href="../css/style.css">
-  <style>
-    .daily-page {
-      padding: 20px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .daily-card {
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 12px;
-      margin-top: 20px;
-    }
-    .daily-card h3 {
-      color: var(--primary);
-      margin-bottom: 15px;
-    }
-    .daily-card .difficulty {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 15px;
-    }
-    .daily-card .date {
-      color: var(--text);
-      font-size: 14px;
-      margin-bottom: 15px;
-    }
-    .daily-card p {
-      color: var(--text);
-      line-height: 1.6;
-    }
-    .solve-btn {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 12px 30px;
-      background: var(--primary);
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      transition: background 0.3s;
-    }
-    .solve-btn:hover {
-      background: var(--primary-hover);
-    }
-    .loading, .error {
-      text-align: center;
-      padding: 40px;
-    }
-    .error {
-      color: #ff4444;
-    }
-  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
 </head>
 <body>
   <nav class="navbar">
-    <div class="nav-brand">ByteStreak</div>
+    <a href="index.html" class="logo">ByteStreak</a>
     <div class="nav-links">
       <a href="index.html">Home</a>
       <a href="problems.html">Problems</a>
-      <a href="daily.html" class="active">Daily Challenge</a>
-      <a href="login.html">Login</a>
+      <a href="topics.html">Topics</a>
+      <a href="daily.html">Daily</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="profile.html" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="login.html" id="nav-login">Login</a>
+      <a href="signup.html" id="nav-signup">Signup</a>
     </div>
   </nav>
 
-  <section class="daily-page">
-    <h2>Problem of the Day</h2>
-    <div id="daily-problem">
-      <div class="loading">Loading today's challenge...</div>
-    </div>
-  </section>
+  <main class="page" id="daily-content">
+    <div class="loading"><span class="spinner"></span>Loading daily problem...</div>
+  </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.js"></script>
+  <script src="../js/config.js"></script>
   <script src="../js/script.js"></script>
   <script>
-    const API_URL = "http://localhost:5000";
+    let dailyProblem = null;
+    let editor = null;
 
-    async function loadDailyProblem() {
-      const container = document.getElementById("daily-problem");
-      
-      try {
-        const response = await fetch(`${API_URL}/problems/daily-problem`);
-        
-        if (!response.ok) {
-          throw new Error("Failed to load daily problem");
-        }
-        
-        const problem = await response.json();
-        
-        const difficultyClass = problem.difficulty?.toLowerCase() || "easy";
-        
-        container.innerHTML = `
-          <div class="daily-card">
-            <h3>${problem.title}</h3>
-            <span class="difficulty ${difficultyClass}">${problem.difficulty || "Easy"}</span>
-            <p class="date">${problem.date || new Date().toISOString().split("T")[0]}</p>
-            <p>${problem.description || "No description available."}</p>
-            <a href="problem.html?id=${problem._id}" class="solve-btn">Solve Now</a>
-          </div>
-        `;
-      } catch (error) {
-        container.innerHTML = `<div class="error">Error: ${error.message}. Make sure the backend is running!</div>`;
+    function modeFor(language) {
+      if (language === "python") return "python";
+      if (language === "cpp") return "text/x-c++src";
+      return "javascript";
+    }
+
+    function renderExamples(problemData) {
+      return (problemData.testCases || []).map((testCase, index) => `
+        <pre>Example ${index + 1}
+Input: ${ByteStreak.escapeHtml(testCase.input)}
+Output: ${ByteStreak.escapeHtml(testCase.expectedOutput)}</pre>
+      `).join("");
+    }
+
+    function renderResult(data) {
+      const output = document.getElementById("output-box");
+      const expected = dailyProblem.testCases?.[0]?.expectedOutput || "";
+      if (data.status === "Accepted") {
+        output.className = "output-box accepted";
+        output.textContent = `✓ Accepted\n\nOutput: ${data.output}`;
+      } else if (data.status === "Wrong Answer") {
+        output.className = "output-box wrong";
+        output.textContent = `✗ Wrong Answer\n\nYour output: ${data.output}\nExpected: ${expected}`;
+      } else {
+        output.className = "output-box error";
+        output.textContent = `Error\n\n${data.output || data.message}`;
       }
     }
 
-    // Load daily problem on page load
-    loadDailyProblem();
+    async function renderDaily() {
+      const content = document.getElementById("daily-content");
+      const user = ByteStreak.getUser();
+      dailyProblem = await ByteStreak.apiJson("/problems/daily");
+
+      content.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1>Problem of the Day</h1>
+            <p>${ByteStreak.formatDate(new Date().toISOString())}</p>
+          </div>
+          <p>Your current streak: ${user?.streak || 0} days</p>
+        </div>
+        <section class="problem-layout">
+          <div>
+            <h2>${ByteStreak.escapeHtml(dailyProblem.title)}</h2>
+            <div class="badges">
+              ${ByteStreak.difficultyBadge(dailyProblem.difficulty)}
+              ${(dailyProblem.tags || []).map((tag) => `<span class="badge">${ByteStreak.escapeHtml(tag)}</span>`).join("")}
+            </div>
+            <hr>
+            <section class="section">
+              <h2>Description</h2>
+              <p>${ByteStreak.escapeHtml(dailyProblem.description)}</p>
+            </section>
+            <section class="section">
+              <h2>Examples</h2>
+              ${renderExamples(dailyProblem)}
+            </section>
+          </div>
+          <div class="problem-right">
+            <div class="editor-toolbar">
+              <select id="language">
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+              </select>
+            </div>
+            <textarea id="code-editor"></textarea>
+            <button class="primary full section" id="run-button">Run Code</button>
+            <div class="output-box" id="output-box">Click Run Code to test your solution</div>
+          </div>
+        </section>
+      `;
+
+      editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
+        mode: "javascript",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        tabSize: 2,
+        indentUnit: 2,
+        lineWrapping: false
+      });
+      editor.setSize("100%", "450px");
+      editor.setValue(dailyProblem.starterCode || "");
+
+      document.getElementById("language").addEventListener("change", (event) => {
+        const language = event.target.value;
+        editor.setOption("mode", modeFor(language));
+        editor.setValue(language === "javascript" ? (dailyProblem.starterCode || "") : "");
+      });
+      document.getElementById("run-button").addEventListener("click", submitDaily);
+    }
+
+    async function submitDaily() {
+      if (!ByteStreak.getToken()) {
+        ByteStreak.showToast("Please log in to run code", "warning");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const button = document.getElementById("run-button");
+      ByteStreak.setButtonLoading(button, "Running...");
+      document.getElementById("output-box").textContent = "Running...";
+
+      try {
+        const data = await ByteStreak.apiJson("/submissions", {
+          method: "POST",
+          body: JSON.stringify({
+            problemId: dailyProblem._id,
+            code: editor.getValue(),
+            language: document.getElementById("language").value
+          })
+        });
+        renderResult(data);
+        const currentUser = ByteStreak.getUser();
+        if (currentUser && data.status === "Accepted") {
+          currentUser.score = data.score;
+          currentUser.streak = data.streak;
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        }
+        ByteStreak.showToast(data.message, data.status === "Accepted" ? "success" : "warning");
+      } catch (error) {
+        const output = document.getElementById("output-box");
+        output.className = "output-box error";
+        output.textContent = `Error\n\n${error.message}`;
+        ByteStreak.showToast(error.message, "error");
+      } finally {
+        ByteStreak.resetButton(button);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderDaily().catch((error) => {
+        ByteStreak.showToast(error.message, "error");
+        document.getElementById("daily-content").innerHTML = `<div class="card">${ByteStreak.escapeHtml(error.message)}</div>`;
+      });
+    });
   </script>
 </body>
 </html>

@@ -1,166 +1,179 @@
-// ByteStreak Frontend API Configuration
-const API_URL = "http://localhost:5000";
+function initDarkMode() {
+  const theme = localStorage.getItem("theme");
+  if (theme === "dark") {
+    document.body.classList.add("dark");
+  }
+  updateThemeIcon();
+}
 
-// Helper function to get auth token
+function toggleDarkMode() {
+  document.body.classList.toggle("dark");
+  const isDark = document.body.classList.contains("dark");
+  localStorage.setItem("theme", isDark ? "dark" : "light");
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  const isDark = document.body.classList.contains("dark");
+  btn.textContent = isDark ? "☀️" : "🌙";
+}
+
 function getToken() {
   return localStorage.getItem("token");
 }
 
-// Helper function to get current user
 function getUser() {
   const user = localStorage.getItem("user");
   return user ? JSON.parse(user) : null;
 }
 
-// Helper function to check if user is logged in
-function isLoggedIn() {
-  return !!getToken();
+function checkAuth() {
+  const token = getToken();
+  const user = getUser();
+
+  const navUsername = document.getElementById("nav-username");
+  const navProfile = document.getElementById("nav-profile");
+  const navLogout = document.getElementById("nav-logout");
+  const navLogin = document.getElementById("nav-login");
+  const navSignup = document.getElementById("nav-signup");
+
+  if (token && user) {
+    if (navUsername) {
+      navUsername.textContent = user.username;
+      navUsername.style.display = "inline";
+    }
+    if (navProfile) navProfile.style.display = "inline";
+    if (navLogout) navLogout.style.display = "inline";
+    if (navLogin) navLogin.style.display = "none";
+    if (navSignup) navSignup.style.display = "none";
+  } else {
+    if (navUsername) navUsername.style.display = "none";
+    if (navProfile) navProfile.style.display = "none";
+    if (navLogout) navLogout.style.display = "none";
+    if (navLogin) navLogin.style.display = "inline";
+    if (navSignup) navSignup.style.display = "inline";
+  }
 }
 
-// Logout function
 function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   window.location.href = "login.html";
 }
 
-// Update navbar based on auth state
-function updateNavbar() {
-  const navLinks = document.querySelector(".nav-links");
-  if (!navLinks) return;
-
-  if (isLoggedIn()) {
-    const user = getUser();
-    navLinks.innerHTML = `
-      <a href="index.html">Home</a>
-      <a href="problems.html">Problems</a>
-      <a href="daily.html">Daily Challenge</a>
-      <a href="profile.html">Profile</a>
-      <a href="#" id="logoutBtn">Logout (${user?.username || "User"})</a>
-    `;
-    document.getElementById("logoutBtn")?.addEventListener("click", logout);
-  } else {
-    navLinks.innerHTML = `
-      <a href="index.html">Home</a>
-      <a href="problems.html">Problems</a>
-      <a href="daily.html">Daily Challenge</a>
-      <a href="login.html">Login</a>
-      <a href="signup.html">Sign Up</a>
-    `;
-  }
-}
-
-// API helper with auth
-async function apiCall(endpoint, options = {}) {
+async function fetchWithAuth(url, options = {}) {
   const token = getToken();
   const headers = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...(options.headers || {}),
   };
-
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers["Authorization"] = "Bearer " + token;
   }
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    logout();
+    return null;
+  }
+  return response;
+}
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
+function requireAuth() {
+  if (!getToken()) {
+    window.location.href = "login.html";
+  }
+}
+
+function showToast(message, type = "success") {
+  const existing = document.getElementById("toast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "toast";
+  toast.className = "toast toast-" + type;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.classList.add("toast-show"), 10);
+  setTimeout(() => {
+    toast.classList.remove("toast-show");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "API call failed");
-  }
-
-  return data;
 }
 
-// Load all problems
-async function loadProblems(filters = {}) {
+function getDifficultyClass(difficulty) {
+  const map = { Easy: "badge-easy", Medium: "badge-medium", Hard: "badge-hard" };
+  return map[difficulty] || "badge-easy";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function difficultyBadge(difficulty) {
+  return `<span class="badge ${getDifficultyClass(difficulty)}">${escapeHtml(difficulty)}</span>`;
+}
+
+async function apiJson(path, options = {}) {
   try {
-    const params = new URLSearchParams(filters).toString();
-    const data = await apiCall(`/problems${params ? `?${params}` : ""}`);
+    const response = await fetchWithAuth(CONFIG.BASE_URL + path, options);
+    if (!response) return null;
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || data.error || "Request failed");
+    }
     return data;
-  } catch (error) {
-    console.error("Failed to load problems:", error);
-    return [];
+  } catch (err) {
+    showToast(err.message || "Network error", "error");
+    throw err;
   }
 }
 
-// Load single problem
-async function loadProblem(id) {
-  try {
-    return await apiCall(`/problems/${id}`);
-  } catch (error) {
-    console.error("Failed to load problem:", error);
-    return null;
-  }
+function setButtonLoading(button, text) {
+  if (!button) return;
+  button.dataset.originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = text;
 }
 
-// Load daily problem
-async function loadDailyProblem() {
-  try {
-    const problem = await apiCall("/problems/daily-problem");
-    return problem;
-  } catch (error) {
-    console.error("Failed to load daily problem:", error);
-    return null;
-  }
+function resetButton(button) {
+  if (!button) return;
+  button.disabled = false;
+  button.textContent = button.dataset.originalText || button.textContent;
 }
 
-// Submit solution
-async function submitSolution(problemId, code, language) {
-  try {
-    return await apiCall("/submissions/submit", {
-      method: "POST",
-      body: JSON.stringify({ problemId, code, language }),
-    });
-  } catch (error) {
-    console.error("Failed to submit solution:", error);
-    throw error;
-  }
-}
-
-// Get user submissions
-async function getUserSubmissions() {
-  try {
-    const data = await apiCall("/submissions");
-    return data.data;
-  } catch (error) {
-    console.error("Failed to load submissions:", error);
-    return [];
-  }
-}
-
-// Get user stats
-async function getUserStats() {
-  try {
-    const data = await apiCall("/submissions/stats");
-    return data.data;
-  } catch (error) {
-    console.error("Failed to load stats:", error);
-    return null;
-  }
-}
-
-// Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
-  updateNavbar();
+  initDarkMode();
+  checkAuth();
 });
 
-// Export functions for use in other scripts
 window.ByteStreak = {
-  API_URL,
+  apiJson,
+  difficultyBadge,
+  escapeHtml,
+  fetchWithAuth,
+  formatDate,
+  getDifficultyClass,
   getToken,
   getUser,
-  isLoggedIn,
-  logout,
-  loadProblems,
-  loadProblem,
-  loadDailyProblem,
-  submitSolution,
-  getUserSubmissions,
-  getUserStats,
-  apiCall,
+  requireAuth,
+  resetButton,
+  setButtonLoading,
+  showToast,
 };

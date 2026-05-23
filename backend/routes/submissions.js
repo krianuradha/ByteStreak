@@ -1,24 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { submitSolution, getUserSubmissions, getProblemSubmissions, getSubmission, getUserStats } = require("../controllers/submissions");
-const { protect } = require("../middleware/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+  submitSolution,
+  getMySubmissions,
+  getProblemSubmissions,
+} = require("../controllers/submissionController");
 
-// All routes require authentication
-router.use(protect);
-
-// Submit a solution
-router.post("/submit", submitSolution);
-
-// Get user's submission history
-router.get("/", getUserSubmissions);
-
-// Get user's stats
-router.get("/stats", getUserStats);
-
-// Get submissions for a specific problem
-router.get("/problem/:problemId", getProblemSubmissions);
-
-// Get single submission
-router.get("/:id", getSubmission);
+router.post("/", authMiddleware, submitSolution);
+router.get("/me", authMiddleware, getMySubmissions);
+router.get("/:problemId", getProblemSubmissions);
 
 module.exports = router;

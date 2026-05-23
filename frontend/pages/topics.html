@@ -7,38 +7,71 @@
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-
   <nav class="navbar">
-    <div class="nav-brand">ByteStreak</div>
+    <a href="index.html" class="logo">ByteStreak</a>
     <div class="nav-links">
       <a href="index.html">Home</a>
       <a href="problems.html">Problems</a>
-      <a href="daily.html">Daily Challenge</a>
-      <a href="login.html">Login</a>
+      <a href="topics.html">Topics</a>
+      <a href="daily.html">Daily</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="profile.html" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="login.html" id="nav-login">Login</a>
+      <a href="signup.html" id="nav-signup">Signup</a>
     </div>
   </nav>
 
-  <section class="topics-page">
-    <h2>Data Structures & Algorithms</h2>
-    <p style="color: var(--text-muted); margin-bottom: 30px;">Master these topics to ace your interviews</p>
-    
-    <div class="topics-grid">
-      <a href="problems.html?tag=Array" class="topic-card">Arrays</a>
-      <a href="problems.html?tag=String" class="topic-card">Strings</a>
-      <a href="problems.html?tag=Hash Table" class="topic-card">Hash Tables</a>
-      <a href="problems.html?tag=Two Pointers" class="topic-card">Two Pointers</a>
-      <a href="problems.html?tag=Dynamic Programming" class="topic-card">Dynamic Programming</a>
-      <a href="problems.html?tag=Binary Search" class="topic-card">Binary Search</a>
-      <a href="problems.html?tag=Stack" class="topic-card">Stack</a>
-      <a href="problems.html?tag=Linked List" class="topic-card">Linked List</a>
-      <a href="problems.html?tag=Math" class="topic-card">Math</a>
-      <a href="problems.html?tag=Greedy" class="topic-card">Greedy</a>
-    </div>
-  </section>
+  <main class="page">
+    <h1>Topics</h1>
+    <p>Choose a track and jump into filtered practice.</p>
+    <section class="topics-grid" id="topics-grid"></section>
+  </main>
 
-  <footer>
-    <p>© 2026 ByteStreak - Build your coding streak every day!</p>
-  </footer>
+  <script src="../js/config.js"></script>
+  <script src="../js/script.js"></script>
+  <script>
+    const topics = [
+      ["Arrays", "▤", "Array"],
+      ["Strings", "≡", "String"],
+      ["HashMaps", "⊞", "Hash Table"],
+      ["Two Pointers", "←→", "Two Pointers"],
+      ["Recursion", "↻", "Recursion"],
+      ["Binary Search", "⌖", "Binary Search"],
+      ["Stack", "⊓", "Stack"],
+      ["Queue", "⊐", "Queue"],
+      ["Sliding Window", "⊟", "Sliding Window"],
+      ["Dynamic Programming", "◈", "Dynamic Programming"],
+      ["Linked Lists", "⊸", "Linked List"],
+      ["Trees", "⊥", "Tree"]
+    ];
 
+    async function renderTopics() {
+      const grid = document.getElementById("topics-grid");
+      let problems = [];
+      try {
+        problems = await ByteStreak.apiJson("/problems");
+      } catch (error) {
+        ByteStreak.showToast(error.message, "error");
+      }
+
+      grid.innerHTML = topics.map(([name, icon, tag]) => {
+        const count = problems.filter((problem) => (problem.tags || []).includes(tag)).length;
+        return `
+          <a class="topic-card" href="problems.html?topic=${encodeURIComponent(tag)}">
+            <span class="topic-icon">${icon}</span>
+            <h3>${name}</h3>
+            <p>${count} problems</p>
+          </a>
+        `;
+      }).join("");
+    }
+
+    document.addEventListener("DOMContentLoaded", renderTopics);
+  </script>
 </body>
 </html>

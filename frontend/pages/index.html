@@ -3,91 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ByteStreak - 365 Days of Code</title>
+  <title>ByteStreak</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-
-  <!-- NAVBAR -->
   <nav class="navbar">
-    <div class="nav-brand">ByteStreak</div>
+    <a href="index.html" class="logo">ByteStreak</a>
     <div class="nav-links">
-      <a href="index.html" class="active">Home</a>
+      <a href="index.html">Home</a>
       <a href="problems.html">Problems</a>
-      <a href="daily.html">Daily Challenge</a>
-      <a href="login.html">Login</a>
+      <a href="topics.html">Topics</a>
+      <a href="daily.html">Daily</a>
+      <a href="leaderboard.html">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="profile.html" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="login.html" id="nav-login">Login</a>
+      <a href="signup.html" id="nav-signup">Signup</a>
     </div>
   </nav>
 
-  <!-- HERO SECTION -->
-  <section class="hero">
-    <h2>Practice Coding Every Day</h2>
-    <p>Beginner friendly coding problems with explanations and practice.</p>
-    <a href="daily.html" class="btn">Solve Today's Problem</a>
-    
-    <div class="hero-stats">
-      <div class="hero-stat">
-        <h3>10+</h3>
-        <p>Problems</p>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Practice Coding<span class="blink">_</span> Every Day</h1>
+        <p class="hero-subtitle">Beginner friendly DSA problems with daily challenges</p>
+        <div class="button-row">
+          <a class="btn primary" href="daily.html">Solve Today's Problem</a>
+          <a class="btn secondary" href="problems.html">Browse Problems</a>
+        </div>
+        <div class="stats-line">
+          <span>150+ Problems</span>
+          <span>10K+ Users</span>
+          <span>Daily Updates</span>
+        </div>
       </div>
-      <div class="hero-stat">
-        <h3>5+</h3>
-        <p>Topics</p>
+      <aside class="challenge-box" id="daily-preview">
+        <div>
+          <h2>Today's Challenge</h2>
+          <p>Loading today's problem...</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="feature-grid">
+      <article class="card">
+        <span class="feature-icon">◆</span>
+        <h3>Daily Challenge</h3>
+        <p>One focused problem every day to keep your streak alive.</p>
+      </article>
+      <article class="card">
+        <span class="feature-icon">▣</span>
+        <h3>DSA Topics</h3>
+        <p>Practice arrays, strings, graphs, dynamic programming, and more.</p>
+      </article>
+      <article class="card">
+        <span class="feature-icon">▶</span>
+        <h3>Code Practice</h3>
+        <p>Write JavaScript solutions and get instant feedback.</p>
+      </article>
+    </section>
+
+    <section class="section">
+      <h2>Popular Topics</h2>
+      <div class="topics-four">
+        <a class="topic-card" href="problems.html?topic=Array">Arrays</a>
+        <a class="topic-card" href="problems.html?topic=String">Strings</a>
+        <a class="topic-card" href="problems.html?topic=Hash Table">HashMap</a>
+        <a class="topic-card" href="problems.html?topic=Two Pointers">Two Pointers</a>
       </div>
-      <div class="hero-stat">
-        <h3>∞</h3>
-        <p>Possibilities</p>
-      </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- FEATURES -->
-  <section class="features">
-    <div class="card">
-      <div class="card-icon">📅</div>
-      <h3>Daily Challenge</h3>
-      <p>One coding problem every day to improve consistency and build your streak.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">📚</div>
-      <h3>DSA Topics</h3>
-      <p>Learn arrays, strings, recursion and algorithms step by step.</p>
-    </div>
-    <div class="card">
-      <div class="card-icon">⚡</div>
-      <h3>Code Practice</h3>
-      <p>Run your code in the browser and test solutions instantly.</p>
-    </div>
-  </section>
+  <script src="../js/config.js"></script>
+  <script src="../js/script.js"></script>
+  <script>
+    async function loadDailyPreview() {
+      const box = document.getElementById("daily-preview");
+      try {
+        const problem = await ByteStreak.apiJson("/problems/daily");
+        box.innerHTML = `
+          <div>
+            <h2>Today's Challenge</h2>
+            <h3>${ByteStreak.escapeHtml(problem.title)}</h3>
+            ${ByteStreak.difficultyBadge(problem.difficulty)}
+            <p>${ByteStreak.escapeHtml(problem.description).slice(0, 150)}...</p>
+          </div>
+          <a class="btn primary" href="problem.html?id=${problem._id}">Solve Now</a>
+        `;
+      } catch (error) {
+        box.innerHTML = `<h2>Today's Challenge</h2><p>${ByteStreak.escapeHtml(error.message)}</p>`;
+      }
+    }
 
-  <!-- POPULAR TOPICS -->
-  <section class="topics">
-    <h2>Popular Topics</h2>
-    <div class="topic-grid">
-      <a href="problems.html?tag=Array" class="topic-card">Arrays</a>
-      <a href="problems.html?tag=String" class="topic-card">Strings</a>
-      <a href="problems.html?tag=Hash Table" class="topic-card">Hashmap</a>
-      <a href="problems.html?tag=Dynamic Programming" class="topic-card">DP</a>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer>
-    <p>© 2026 ByteStreak - Build your coding streak every day!</p>
-  </footer>
-
+    document.addEventListener("DOMContentLoaded", loadDailyPreview);
+  </script>
 </body>
-</html>
-
-
-<!-- FOOTER -->
-
-<footer>
-
-<p>© 2026 ByteStreak</p>
-
-</footer>
-
-</body>
-
 </html>

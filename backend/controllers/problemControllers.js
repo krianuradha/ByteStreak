@@ -1,30 +1,11 @@
 const Problem = require("../models/problem");
 const asyncHandler = require("../middleware/asyncHandler");
 
-// Get all problems
 exports.getProblems = asyncHandler(async (req, res) => {
-  const { difficulty, tag, search } = req.query;
-  
-  let query = {};
-  
-  if (difficulty) {
-    query.difficulty = difficulty;
-  }
-  if (tag) {
-    query.tags = tag;
-  }
-  if (search) {
-    query.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { description: { $regex: search, $options: "i" } }
-    ];
-  }
-  
-  const problems = await Problem.find(query).sort({ createdAt: -1 });
+  const problems = await Problem.find();
   res.status(200).json(problems);
 });
 
-// Get single problem
 exports.getProblem = asyncHandler(async (req, res) => {
   const problem = await Problem.findById(req.params.id);
   if (!problem) {
@@ -33,40 +14,61 @@ exports.getProblem = asyncHandler(async (req, res) => {
   res.status(200).json(problem);
 });
 
-// Get daily problem (changes at midnight based on date)
 exports.getDailyProblem = asyncHandler(async (req, res) => {
-  const problems = await Problem.find();
-  
-  if (problems.length === 0) {
-    return res.status(404).json({ message: "No problems available" });
-  }
-  
-  // Use date to deterministically select a problem
   const today = new Date();
-  const dateString = `${today.getFullYear()}${today.getMonth()}${today.getDate()}`;
-  const index = parseInt(dateString) % problems.length;
-  
-  const dailyProblem = problems[index];
-  
-  res.status(200).json({
-    _id: dailyProblem._id,
-    title: dailyProblem.title,
-    description: dailyProblem.description,
-    difficulty: dailyProblem.difficulty,
-    tags: dailyProblem.tags,
-    date: today.toISOString().split("T")[0]
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+
+  let problem = await Problem.findOne({
+    dailyDate: { $gte: startOfDay, $lt: endOfDay },
   });
+
+  if (!problem) {
+    const count = await Problem.countDocuments();
+    if (count === 0) {
+      return res.status(404).json({ message: "No problems available" });
+    }
+    const random = Math.floor(Math.random() * count);
+    problem = await Problem.findOne().skip(random);
+  }
+
+  res.status(200).json(problem);
 });
 
-// Add new problem
 exports.addProblem = asyncHandler(async (req, res) => {
   const problem = new Problem(req.body);
   await problem.save();
-  res.status(201).json({ message: "Problem added!", problem });
+  res.status(201).json(problem);
 });
 
-// Delete problem
 exports.deleteProblem = asyncHandler(async (req, res) => {
-  await Problem.findByIdAndDelete(req.params.id);
-  res.status(200).json({ message: "Problem deleted!" });
+  const problem = await Problem.findByIdAndDelete(req.params.id);
+  if (!problem) {
+    return res.status(404).json({ message: "Problem not found" });
+  }
+  res.status(200).json({ message: "Problem deleted successfully" });
+});
+
+exports.filterProblems = asyncHandler(async (req, res) => {
+  const { difficulty, tag, search } = req.query;
+  const filter = {};
+
+  if (difficulty) filter.difficulty = difficulty;
+  if (tag) filter.tags = { $in: [tag] };
+  if (search) filter.title = { $regex: search, $options: "i" };
+
+  const problems = await Problem.find(filter);
+  res.status(200).json(problems);
+});
+
+exports.likeProblem = asyncHandler(async (req, res) => {
+  const problem = await Problem.findById(req.params.id);
+  if (!problem) {
+    return res.status(404).json({ message: "Problem not found" });
+  }
+
+  problem.likes += 1;
+  await problem.save();
+  res.status(200).json(problem);
 });

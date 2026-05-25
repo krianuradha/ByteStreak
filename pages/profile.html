@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="View your ByteStreak profile, stats, and recent submission history.">
+  <title>Profile — ByteStreak</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/problems">Problems</a>
+      <a href="/topics">Topics</a>
+      <a href="/daily">Daily</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="/profile" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="/login" id="nav-login">Login</a>
+      <a href="/signup" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="page" id="profile-content">
+    <div class="loading"><span class="spinner"></span>Loading profile...</div>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/script.js"></script>
+  <script>
+    requireAuth();
+
+    async function loadProfile() {
+      const content = document.getElementById("profile-content");
+      try {
+        const [user, submissions] = await Promise.all([
+          ByteStreak.apiJson("/auth/me"),
+          ByteStreak.apiJson("/submissions/me")
+        ]);
+
+        function statusClass(status) {
+          if (status === "Accepted") return "status-accepted";
+          if (status === "Wrong Answer") return "status-wrong";
+          return "status-error";
+        }
+
+        content.innerHTML = `
+          <section class="profile-top card">
+            <div>
+              <h1>${ByteStreak.escapeHtml(user.username)}</h1>
+              <p>${ByteStreak.escapeHtml(user.email)}</p>
+            </div>
+            <p>Member since ${ByteStreak.formatDate(user.createdAt)}</p>
+          </section>
+          <section class="stats-grid">
+            <div class="stat-box"><strong>${user.solvedProblems?.length || 0}</strong><p>Problems Solved</p></div>
+            <div class="stat-box"><strong>${user.streak || 0}</strong><p>Current Streak</p></div>
+            <div class="stat-box"><strong>${user.score || 0}</strong><p>Total Score</p></div>
+          </section>
+          <section class="section">
+            <h2>Recent Activity</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem name</th><th>Status</th><th>Language</th><th>Date</th></tr></thead>
+                <tbody>
+                  ${submissions.slice(0, 10).map((submission) => `
+                    <tr>
+                      <td>${ByteStreak.escapeHtml(submission.problemId?.title || "Unknown")}</td>
+                      <td><span class="badge ${statusClass(submission.status)}">${ByteStreak.escapeHtml(submission.status)}</span></td>
+                      <td>${ByteStreak.escapeHtml(submission.language)}</td>
+                      <td>${ByteStreak.formatDate(submission.submittedAt)}</td>
+                    </tr>
+                  `).join("") || '<tr><td colspan="4">No submissions yet.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        `;
+      } catch (error) {
+        ByteStreak.showToast(error.message, "error");
+        content.innerHTML = `<div class="card">${ByteStreak.escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadProfile);
+  </script>
+</body>
+</html>

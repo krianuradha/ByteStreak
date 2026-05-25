@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Explore DSA topics on ByteStreak — Arrays, Strings, Dynamic Programming, and more.">
+  <title>Topics — ByteStreak</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/problems">Problems</a>
+      <a href="/topics">Topics</a>
+      <a href="/daily">Daily</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="/profile" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="/login" id="nav-login">Login</a>
+      <a href="/signup" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <h1>Topics</h1>
+    <p>Choose a track and jump into filtered practice.</p>
+    <section class="topics-grid" id="topics-grid"></section>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/script.js"></script>
+  <script>
+    const topics = [
+      ["Arrays", "▤", "Array"],
+      ["Strings", "≡", "String"],
+      ["HashMaps", "⊞", "Hash Table"],
+      ["Two Pointers", "←→", "Two Pointers"],
+      ["Recursion", "↻", "Recursion"],
+      ["Binary Search", "⌖", "Binary Search"],
+      ["Stack", "⊓", "Stack"],
+      ["Queue", "⊐", "Queue"],
+      ["Sliding Window", "⊟", "Sliding Window"],
+      ["Dynamic Programming", "◈", "Dynamic Programming"],
+      ["Linked Lists", "⊸", "Linked List"],
+      ["Trees", "⊥", "Tree"]
+    ];
+
+    async function renderTopics() {
+      const grid = document.getElementById("topics-grid");
+      let problems = [];
+      try {
+        problems = await ByteStreak.apiJson("/problems");
+      } catch (error) {
+        ByteStreak.showToast(error.message, "error");
+      }
+
+      grid.innerHTML = topics.map(([name, icon, tag]) => {
+        const count = problems.filter((problem) => (problem.tags || []).includes(tag)).length;
+        return `
+          <a class="topic-card" href="/problems?topic=${encodeURIComponent(tag)}">
+            <span class="topic-icon">${icon}</span>
+            <h3>${name}</h3>
+            <p>${count} problems</p>
+          </a>
+        `;
+      }).join("");
+    }
+
+    document.addEventListener("DOMContentLoaded", renderTopics);
+  </script>
+</body>
+</html>

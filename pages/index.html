@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ByteStreak — Practice DSA problems daily, build streaks, and level up your coding skills.">
+  <title>ByteStreak — Daily DSA Practice</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/problems">Problems</a>
+      <a href="/topics">Topics</a>
+      <a href="/daily">Daily</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="/profile" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="/login" id="nav-login">Login</a>
+      <a href="/signup" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Practice Coding<span class="blink">_</span> Every Day</h1>
+        <p class="hero-subtitle">Beginner friendly DSA problems with daily challenges</p>
+        <div class="button-row">
+          <a class="btn primary" href="/daily">Solve Today's Problem</a>
+          <a class="btn secondary" href="/problems">Browse Problems</a>
+        </div>
+        <div class="stats-line">
+          <span>150+ Problems</span>
+          <span>10K+ Users</span>
+          <span>Daily Updates</span>
+        </div>
+      </div>
+      <aside class="challenge-box" id="daily-preview">
+        <div>
+          <h2>Today's Challenge</h2>
+          <p>Loading today's problem...</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="feature-grid">
+      <article class="card">
+        <span class="feature-icon">◆</span>
+        <h3>Daily Challenge</h3>
+        <p>One focused problem every day to keep your streak alive.</p>
+      </article>
+      <article class="card">
+        <span class="feature-icon">▣</span>
+        <h3>DSA Topics</h3>
+        <p>Practice arrays, strings, graphs, dynamic programming, and more.</p>
+      </article>
+      <article class="card">
+        <span class="feature-icon">▶</span>
+        <h3>Code Practice</h3>
+        <p>Write JavaScript solutions and get instant feedback.</p>
+      </article>
+    </section>
+
+    <section class="section">
+      <h2>Popular Topics</h2>
+      <div class="topics-four">
+        <a class="topic-card" href="/problems?topic=Array">Arrays</a>
+        <a class="topic-card" href="/problems?topic=String">Strings</a>
+        <a class="topic-card" href="/problems?topic=Hash Table">HashMap</a>
+        <a class="topic-card" href="/problems?topic=Two Pointers">Two Pointers</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/script.js"></script>
+  <script>
+    async function loadDailyPreview() {
+      const box = document.getElementById("daily-preview");
+      try {
+        const problem = await ByteStreak.apiJson("/problems/daily");
+        box.innerHTML = `
+          <div>
+            <h2>Today's Challenge</h2>
+            <h3>${ByteStreak.escapeHtml(problem.title)}</h3>
+            ${ByteStreak.difficultyBadge(problem.difficulty)}
+            <p>${ByteStreak.escapeHtml(problem.description).slice(0, 150)}...</p>
+          </div>
+          <a class="btn primary" href="/problem?id=${problem._id}">Solve Now</a>
+        `;
+      } catch (error) {
+        box.innerHTML = `<h2>Today's Challenge</h2><p>${ByteStreak.escapeHtml(error.message)}</p>`;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadDailyPreview);
+  </script>
+</body>
+</html>

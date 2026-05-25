@@ -1,33 +1,58 @@
-// Load .env only in local development (Vercel uses environment variables from dashboard)
-const path = require("path");
-const envPath = path.resolve(__dirname, "../backend/.env");
-require("dotenv").config({ path: envPath });
-
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
 const app = express();
 
-app.use(cors());
+// ─── CORS ────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5000",
+  "http://127.0.0.1:5000",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "https://bytestreak.vercel.app",
+  process.env.VERCEL_URL ? "https://" + process.env.VERCEL_URL : null,
+  process.env.FRONTEND_URL || null,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, same-origin)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // open in prod since frontend is same domain
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
-// Cache the MongoDB connection across warm serverless invocations
+// ─── MongoDB connection (cached across warm serverless invocations) ───────────
 let isConnected = false;
 
-async function connectDB() {
+const connectDB = async () => {
   if (isConnected) return;
   try {
     mongoose.set("bufferCommands", false);
     await mongoose.connect(process.env.MONGO_URI);
     isConnected = true;
+    console.log("MongoDB Connected");
   } catch (err) {
-    console.error("MongoDB Connection Error:", err);
+    console.error("MongoDB Error:", err.message);
     throw err;
   }
-}
+};
 
-// Connect to DB before handling any request
+// Connect before each request
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -37,25 +62,38 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Import routes from backend directory
-const authRoutes = require("../backend/routes/auth");
-const problemRoutes = require("../backend/routes/problems");
-const submissionRoutes = require("../backend/routes/submissions");
-const userRoutes = require("../backend/routes/users");
+// ─── Routes ──────────────────────────────────────────────────────────────────
+const authRoutes = require("../lib/routes/auth");
+const problemRoutes = require("../lib/routes/problems");
+const submissionRoutes = require("../lib/routes/submissions");
+const userRoutes = require("../lib/routes/users");
 
-// Mount all routes under /api
 app.use("/api/auth", authRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/users", userRoutes);
 
-app.get("/api", (req, res) => res.json({ message: "ByteStreak API running" }));
+// ─── Health check ─────────────────────────────────────────────────────────────
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    dbConnected: isConnected,
+  });
+});
 
-// Global error handler
+// ─── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message });
 });
 
-// Export for Vercel serverless
+// ─── Local dev server (not used on Vercel) ────────────────────────────────────
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log("Server running on http://localhost:" + PORT);
+  });
+}
+
 module.exports = app;

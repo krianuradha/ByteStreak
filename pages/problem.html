@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Solve DSA problems on ByteStreak with an in-browser code editor and instant feedback.">
+  <title>Problem — ByteStreak</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/problems">Problems</a>
+      <a href="/topics">Topics</a>
+      <a href="/daily">Daily</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="/profile" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="/login" id="nav-login">Login</a>
+      <a href="/signup" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="page" id="problem-content">
+    <div class="loading"><span class="spinner"></span>Loading problem...</div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/script.js"></script>
+  <script>
+    const problemId = new URLSearchParams(window.location.search).get("id");
+    let problem = null;
+    let editor = null;
+
+    const starterByLanguage = {
+      javascript: "",
+      python: "def solve():\n  pass",
+      cpp: "#include <iostream>\nusing namespace std;\n\nint main() {\n  return 0;\n}"
+    };
+
+    function modeFor(language) {
+      if (language === "python") return "python";
+      if (language === "cpp") return "text/x-c++src";
+      return "javascript";
+    }
+
+    function renderExamples(problemData) {
+      if (problemData.examples) return `<pre>${ByteStreak.escapeHtml(problemData.examples)}</pre>`;
+      return (problemData.testCases || []).map((testCase, index) => `
+        <pre>Example ${index + 1}
+Input: ${ByteStreak.escapeHtml(testCase.input)}
+Output: ${ByteStreak.escapeHtml(testCase.expectedOutput)}</pre>
+      `).join("");
+    }
+
+    function renderOutput(data) {
+      const output = document.getElementById("output-box");
+      const expected = problem.testCases?.[0]?.expectedOutput || "";
+      if (data.status === "Accepted") {
+        output.className = "output-box accepted";
+        output.textContent = `✓ Accepted\n\nOutput: ${data.output}`;
+      } else if (data.status === "Wrong Answer") {
+        output.className = "output-box wrong";
+        output.textContent = `✗ Wrong Answer\n\nYour output: ${data.output}\nExpected: ${expected}`;
+      } else {
+        output.className = "output-box error";
+        output.textContent = `Error\n\n${data.output || data.message}`;
+      }
+    }
+
+    async function loadPreviousSubmissions() {
+      const list = document.getElementById("submission-list");
+      const currentUser = ByteStreak.getUser();
+      try {
+        const submissions = await ByteStreak.apiJson(`/submissions/${problemId}`);
+        const mine = currentUser
+          ? submissions.filter((submission) => submission.userId?._id === currentUser.id).slice(0, 5)
+          : [];
+
+        list.innerHTML = mine.length ? mine.map((submission) => `
+          <tr>
+            <td>${ByteStreak.escapeHtml(submission.status)}</td>
+            <td>${ByteStreak.escapeHtml(submission.language)}</td>
+            <td>${ByteStreak.formatDate(submission.submittedAt)}</td>
+          </tr>
+        `).join("") : '<tr><td colspan="3">No previous submissions.</td></tr>';
+      } catch (error) {
+        list.innerHTML = `<tr><td colspan="3">${ByteStreak.escapeHtml(error.message)}</td></tr>`;
+      }
+    }
+
+    function renderProblem(problemData) {
+      problem = problemData;
+      const content = document.getElementById("problem-content");
+      content.innerHTML = `
+        <section class="problem-layout">
+          <div>
+            <h1>${ByteStreak.escapeHtml(problemData.title)}</h1>
+            <div class="badges">
+              ${ByteStreak.difficultyBadge(problemData.difficulty)}
+              ${(problemData.tags || []).map((tag) => `<span class="badge">${ByteStreak.escapeHtml(tag)}</span>`).join("")}
+            </div>
+            <hr>
+            <section class="section">
+              <h2>Description</h2>
+              <p>${ByteStreak.escapeHtml(problemData.description)}</p>
+            </section>
+            <section class="section">
+              <h2>Examples</h2>
+              ${renderExamples(problemData)}
+            </section>
+            ${problemData.constraints ? `
+              <section class="section">
+                <h2>Constraints</h2>
+                <pre>${ByteStreak.escapeHtml(problemData.constraints)}</pre>
+              </section>
+            ` : ""}
+            <details class="section" open>
+              <summary class="collapsible-summary">Previous Submissions</summary>
+              <div class="table-wrap section">
+                <table>
+                  <thead><tr><th>Status</th><th>Language</th><th>Date</th></tr></thead>
+                  <tbody id="submission-list"><tr><td colspan="3">Loading...</td></tr></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+          <div class="problem-right">
+            <div class="editor-toolbar">
+              <select id="language">
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+              </select>
+            </div>
+            <textarea id="code-editor"></textarea>
+            <button class="primary full section" id="run-button">Run Code</button>
+            <div class="output-box" id="output-box">Click Run Code to test your solution</div>
+          </div>
+        </section>
+      `;
+
+      editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
+        mode: "javascript",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        tabSize: 2,
+        indentUnit: 2,
+        lineWrapping: false
+      });
+      editor.setSize("100%", "450px");
+      editor.setValue(problemData.starterCode || "");
+
+      document.getElementById("language").addEventListener("change", (event) => {
+        const language = event.target.value;
+        editor.setOption("mode", modeFor(language));
+        editor.setValue(language === "javascript" ? (problem.starterCode || "") : starterByLanguage[language]);
+      });
+
+      document.getElementById("run-button").addEventListener("click", submitCode);
+      loadPreviousSubmissions();
+    }
+
+    async function submitCode() {
+      if (!ByteStreak.getToken()) {
+        ByteStreak.showToast("Please log in to run code", "warning");
+        window.location.href = "/login";
+        return;
+      }
+
+      const button = document.getElementById("run-button");
+      const output = document.getElementById("output-box");
+      ByteStreak.setButtonLoading(button, "Running...");
+      output.className = "output-box";
+      output.textContent = "Running...";
+
+      try {
+        const data = await ByteStreak.apiJson("/submissions", {
+          method: "POST",
+          body: JSON.stringify({
+            problemId,
+            code: editor.getValue(),
+            language: document.getElementById("language").value
+          })
+        });
+        renderOutput(data);
+        const currentUser = ByteStreak.getUser();
+        if (currentUser && data.status === "Accepted") {
+          currentUser.score = data.score;
+          currentUser.streak = data.streak;
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        }
+        ByteStreak.showToast(data.message, data.status === "Accepted" ? "success" : "warning");
+        loadPreviousSubmissions();
+      } catch (error) {
+        output.className = "output-box error";
+        output.textContent = `Error\n\n${error.message}`;
+        ByteStreak.showToast(error.message, "error");
+      } finally {
+        ByteStreak.resetButton(button);
+      }
+    }
+
+    async function initProblem() {
+      if (!problemId) {
+        document.getElementById("problem-content").innerHTML = '<div class="card">Problem id missing.</div>';
+        return;
+      }
+
+      try {
+        renderProblem(await ByteStreak.apiJson(`/problems/${problemId}`));
+      } catch (error) {
+        ByteStreak.showToast(error.message, "error");
+        document.getElementById("problem-content").innerHTML = `<div class="card">${ByteStreak.escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", initProblem);
+  </script>
+</body>
+</html>

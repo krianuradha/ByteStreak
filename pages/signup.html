@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create your ByteStreak account and start tracking your DSA progress today.">
+  <title>Sign Up — ByteStreak</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/problems">Problems</a>
+      <a href="/topics">Topics</a>
+      <a href="/daily">Daily</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="/profile" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="/login" id="nav-login">Login</a>
+      <a href="/signup" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="auth-page">
+    <section class="auth-box">
+      <h1>Create Account</h1>
+      <div class="error-message" id="error-message"></div>
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" required autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input id="confirm-password" type="password" required autocomplete="new-password">
+        </div>
+        <button class="primary full" id="signup-button" type="submit">Create Account</button>
+      </form>
+      <p class="auth-link">Already have an account? <a href="/login">Login</a></p>
+    </section>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/script.js"></script>
+  <script>
+    function showError(message) {
+      const error = document.getElementById("error-message");
+      error.textContent = message;
+      error.style.display = "block";
+    }
+
+    document.getElementById("signup-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirm-password").value;
+      const button = document.getElementById("signup-button");
+      const error = document.getElementById("error-message");
+      error.style.display = "none";
+
+      if (!username || !email || !password || !confirmPassword) return showError("All fields are required");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError("Enter a valid email");
+      if (password !== confirmPassword) return showError("Passwords must match");
+      if (password.length < 6) return showError("Password must be at least 6 characters");
+
+      ByteStreak.setButtonLoading(button, "Creating account...");
+      try {
+        const response = await fetch(`${CONFIG.BASE_URL}/auth/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Signup failed");
+        ByteStreak.showToast("Account created! Please log in.");
+        window.location.href = "/login";
+      } catch (err) {
+        showError(err.message);
+        ByteStreak.showToast(err.message, "error");
+      } finally {
+        ByteStreak.resetButton(button);
+      }
+    });
+  </script>
+</body>
+</html>

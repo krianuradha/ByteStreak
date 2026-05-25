@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Browse and filter all DSA problems on ByteStreak. Filter by difficulty, topic, and search by name.">
+  <title>Problems — ByteStreak</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="logo">ByteStreak</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/problems">Problems</a>
+      <a href="/topics">Topics</a>
+      <a href="/daily">Daily</a>
+      <a href="/leaderboard">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <button onclick="toggleDarkMode()" class="theme-toggle" id="theme-toggle">☀️</button>
+      <span id="nav-username" style="display:none"></span>
+      <a href="/profile" id="nav-profile" style="display:none">Profile</a>
+      <button onclick="logout()" id="nav-logout" style="display:none">Logout</button>
+      <a href="/login" id="nav-login">Login</a>
+      <a href="/signup" id="nav-signup">Signup</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="page-header">
+      <div>
+        <h1>Problem Set</h1>
+        <p id="problem-count">Loading problems...</p>
+      </div>
+    </div>
+
+    <input class="search-input" id="search-input" placeholder="Search problems...">
+    <div class="filter-row">
+      <div class="filter-buttons">
+        <button class="secondary difficulty-filter" data-difficulty="">All</button>
+        <button class="secondary difficulty-filter" data-difficulty="Easy">Easy</button>
+        <button class="secondary difficulty-filter" data-difficulty="Medium">Medium</button>
+        <button class="secondary difficulty-filter" data-difficulty="Hard">Hard</button>
+      </div>
+      <select id="topic-filter">
+        <option value="">All Topics</option>
+        <option value="Array">Arrays</option>
+        <option value="String">Strings</option>
+        <option value="Hash Table">HashMap</option>
+        <option value="Two Pointers">Two Pointers</option>
+        <option value="Linked List">Linked Lists</option>
+        <option value="Stack">Stack</option>
+        <option value="Binary Search">Binary Search</option>
+        <option value="Dynamic Programming">Dynamic Programming</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Difficulty</th>
+            <th>Tags</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="problem-rows">
+          <tr><td colspan="5" class="loading"><span class="spinner"></span>Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/script.js"></script>
+  <script>
+    let allProblems = [];
+    let solvedProblems = new Set();
+    let activeDifficulty = "";
+
+    function getTopicFromUrl() {
+      return new URLSearchParams(window.location.search).get("topic") || "";
+    }
+
+    function renderProblems() {
+      const search = document.getElementById("search-input").value.trim().toLowerCase();
+      const topic = document.getElementById("topic-filter").value;
+      const rows = document.getElementById("problem-rows");
+      const filtered = allProblems.filter((problem) => {
+        const matchesSearch = !search || problem.title.toLowerCase().includes(search);
+        const matchesDifficulty = !activeDifficulty || problem.difficulty === activeDifficulty;
+        const matchesTopic = !topic || (problem.tags || []).includes(topic);
+        return matchesSearch && matchesDifficulty && matchesTopic;
+      });
+
+      document.getElementById("problem-count").textContent = `Showing ${filtered.length} problems`;
+      rows.innerHTML = filtered.length ? filtered.map((problem, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><a href="/problem?id=${problem._id}">${ByteStreak.escapeHtml(problem.title)}</a></td>
+          <td>${ByteStreak.difficultyBadge(problem.difficulty)}</td>
+          <td>${(problem.tags || []).map((tag) => `<span class="badge">${ByteStreak.escapeHtml(tag)}</span>`).join("")}</td>
+          <td>${solvedProblems.has(problem._id) ? "✓" : ""}</td>
+        </tr>
+      `).join("") : '<tr><td colspan="5">No problems found.</td></tr>';
+    }
+
+    async function loadSolvedProblems() {
+      if (!ByteStreak.getToken()) return;
+      try {
+        const user = await ByteStreak.apiJson("/auth/me");
+        solvedProblems = new Set((user.solvedProblems || []).map((problem) => problem._id || problem));
+      } catch (error) {
+        solvedProblems = new Set();
+      }
+    }
+
+    async function loadProblems() {
+      try {
+        await loadSolvedProblems();
+        allProblems = await ByteStreak.apiJson("/problems");
+        renderProblems();
+      } catch (error) {
+        ByteStreak.showToast(error.message, "error");
+        document.getElementById("problem-rows").innerHTML = `<tr><td colspan="5">${ByteStreak.escapeHtml(error.message)}</td></tr>`;
+      }
+    }
+
+    document.getElementById("search-input").addEventListener("input", renderProblems);
+    document.getElementById("topic-filter").addEventListener("change", renderProblems);
+    document.querySelectorAll(".difficulty-filter").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeDifficulty = button.dataset.difficulty;
+        renderProblems();
+      });
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const topic = getTopicFromUrl();
+      if (topic) document.getElementById("topic-filter").value = topic;
+      loadProblems();
+    });
+  </script>
+</body>
+</html>

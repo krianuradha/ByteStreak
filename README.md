@@ -51,10 +51,7 @@ npm install
 ### 2. Create `.env` file at root
 
 ```env
-MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/bytestreak
-JWT_SECRET=bytestreak_super_secret_key_2026
-NODE_ENV=development
-PORT=5000
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net
 ```
 
 ### 3. Seed the database (first time)
@@ -92,13 +89,6 @@ git push origin main
 5. **Framework Preset**: Other
 6. **Build Command**: leave empty
 7. **Output Directory**: leave empty
-8. Click **"Environment Variables"** and add:
-
-| Key | Value |
-|-----|-------|
-| `MONGO_URI` | `mongodb+srv://...` |
-| `JWT_SECRET` | `bytestreak_super_secret_key_2026` |
-| `NODE_ENV` | `production` |
 
 9. Click **Deploy**
 10. Your app is live at `https://bytestreak.vercel.app` (or similar URL)
